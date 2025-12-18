@@ -1,5 +1,7 @@
 # Stock Market Assist
 
+Website: https://nih4rs.github.io/Stock_Market_Assit/
+
 A professional-grade scanner that evaluates trading strategies across a broad universe (e.g., S&P 500) and updates an Excel playbook with the best candidates.
 
 ## Features

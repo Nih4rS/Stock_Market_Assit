@@ -1,4 +1,75 @@
 {
-  "generated_utc": "2025-12-18 07:08 UTC",
-  "rows": []
+  "generated_utc": "2025-12-18 07:17 UTC",
+  "rows": [
+    {
+      "Ticker": "AAPL",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 271.8399963378906,
+      "SMA50": 268.7262957763672,
+      "SMA200": 229.15907539367674,
+      "RSI14": null,
+      "Vol5x20": null
+    },
+    {
+      "Ticker": "AMZN",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 221.27000427246094,
+      "SMA50": 229.2438003540039,
+      "SMA200": 215.41465019226075,
+      "RSI14": null,
+      "Vol5x20": null
+    },
+    {
+      "Ticker": "AVGO",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 326.0199890136719,
+      "SMA50": 361.928798828125,
+      "SMA200": 281.62478950500486,
+      "RSI14": null,
+      "Vol5x20": 1.8387949874643137
+    },
+    {
+      "Ticker": "GOOGL",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 296.7200012207031,
+      "SMA50": 284.9035418701172,
+      "SMA200": 210.57305946350098,
+      "RSI14": null,
+      "Vol5x20": null
+    },
+    {
+      "Ticker": "MSFT",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 476.1199951171875,
+      "SMA50": 501.22235107421875,
+      "SMA200": 471.7546325683594,
+      "RSI14": null,
+      "Vol5x20": null
+    },
+    {
+      "Ticker": "NVDA",
+      "Strategy": "golden_cross",
+      "Score": 2.0,
+      "Close": 170.94000244140625,
+      "SMA50": 186.1742413330078,
+      "SMA200": 156.90815448760986,
+      "RSI14": null,
+      "Vol5x20": null
+    },
+    {
+      "Ticker": "BRK-B",
+      "Strategy": "rsi_momentum",
+      "Score": 1.5,
+      "Close": 504.2699890136719,
+      "SMA50": null,
+      "SMA200": null,
+      "RSI14": 55.64449774258013,
+      "Vol5x20": null
+    }
+  ]
 }
