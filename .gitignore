@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+.env
+.env.*
+
+# macOS
+.DS_Store
+
+# Notebooks
+.ipynb_checkpoints/
+
+# Data artifacts
+/data/
+!data/.gitkeep
+
+# Logs
+logs/
+
+# VS Code
+.vscode/

@@ -1,0 +1,46 @@
+name: Scheduled Scan
+
+on:
+  schedule:
+    - cron: '30 21 * * 1-5'  # 21:30 UTC ~ after US market close
+  workflow_dispatch: {}
+
+jobs:
+  run-scan:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install deps
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+
+      - name: Run scan
+        run: |
+          python -m smassist.cli scan --universe sp500 --excel data/Top500_Sample_Strategy_Playbook.xlsx
+
+      - name: Commit and push if changed
+        env:
+          GIT_AUTHOR_NAME: github-actions
+          GIT_AUTHOR_EMAIL: actions@github.com
+          GIT_COMMITTER_NAME: github-actions
+          GIT_COMMITTER_EMAIL: actions@github.com
+        run: |
+          git add -A
+          if ! git diff --cached --quiet; then
+            git commit -m "chore: update playbook via scheduled scan"
+            git push
+          else
+            echo "No changes to commit."
+          fi
