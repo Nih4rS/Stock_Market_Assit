@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "stock-market-assist"
+version = "0.1.0"
+description = "Strategy-based stock scanner + Excel playbook updater + GitHub Pages dashboard"
+readme = "README.md"
+requires-python = ">=3.11"
+license = { file = "LICENSE" }
+authors = [{ name = "Nih4rS" }]
+keywords = ["stocks", "trading", "scanner", "yfinance", "github-pages", "excel"]
+classifiers = [
+  "Programming Language :: Python :: 3",
+  "License :: OSI Approved :: MIT License",
+  "Operating System :: OS Independent",
+]
+
+dependencies = [
+  "pandas",
+  "numpy",
+  "yfinance",
+  "openpyxl",
+  "requests",
+  "python-dateutil",
+  "feedparser",
+]
+
+[project.scripts]
+smassist = "smassist.cli:main"
+
+[tool.setuptools]
+package-dir = {"" = "src"}
+
+[tool.setuptools.packages.find]
+where = ["src"]

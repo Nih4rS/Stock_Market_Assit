@@ -1,0 +1,47 @@
+{
+  "generated_utc": "2025-12-18 08:03 UTC",
+  "sectors": [
+    {
+      "name": "Technology",
+      "candidates": 4
+    },
+    {
+      "name": "Communication Services",
+      "candidates": 1
+    },
+    {
+      "name": "Consumer Cyclical",
+      "candidates": 1
+    },
+    {
+      "name": "Financial Services",
+      "candidates": 1
+    }
+  ],
+  "industries": [
+    {
+      "name": "Semiconductors",
+      "candidates": 2
+    },
+    {
+      "name": "Consumer Electronics",
+      "candidates": 1
+    },
+    {
+      "name": "Insurance - Diversified",
+      "candidates": 1
+    },
+    {
+      "name": "Internet Content & Information",
+      "candidates": 1
+    },
+    {
+      "name": "Internet Retail",
+      "candidates": 1
+    },
+    {
+      "name": "Software - Infrastructure",
+      "candidates": 1
+    }
+  ]
+}

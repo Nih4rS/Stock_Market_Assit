@@ -16,7 +16,7 @@ except Exception:  # pragma: no cover
 
 @dataclass
 class ScanSettings:
-    universe: str = "sp500"
+    universe: str = "nse"
     strategies: List[str] = field(default_factory=lambda: list(DEFAULT_STRATEGIES))
     lookback_days: int = 252
     excel_path: str = "data/Top500_Sample_Strategy_Playbook.xlsx"

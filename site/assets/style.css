@@ -12,6 +12,9 @@ section{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
 input{background:#0b1220;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;outline:none}
 input:focus{border-color:var(--accent)}
+select{background:#0b1220;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;outline:none}
+select:focus{border-color:var(--accent)}
+.inlineLabel{margin:0;color:var(--muted);font-size:12px}
 button{background:var(--accent);border:0;color:#06101f;border-radius:10px;padding:10px 14px;font-weight:600;cursor:pointer}
 button:disabled{opacity:.6;cursor:not-allowed}
 .tableWrap{overflow:auto;border-radius:10px;border:1px solid var(--line)}

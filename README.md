@@ -1,5 +1,8 @@
 # Stock Market Assist
 
+[![Build & Deploy Pages](https://github.com/Nih4rS/Stock_Market_Assit/actions/workflows/pages.yml/badge.svg)](https://github.com/Nih4rS/Stock_Market_Assit/actions/workflows/pages.yml)
+[![Scheduled Scan](https://github.com/Nih4rS/Stock_Market_Assit/actions/workflows/scan.yml/badge.svg)](https://github.com/Nih4rS/Stock_Market_Assit/actions/workflows/scan.yml)
+
 Website: https://nih4rs.github.io/Stock_Market_Assit/
 
 A professional-grade scanner that evaluates trading strategies across a broad universe (e.g., S&P 500) and updates an Excel playbook with the best candidates.
@@ -19,11 +22,15 @@ A professional-grade scanner that evaluates trading strategies across a broad un
 python3 -m venv .venv
 source .venv/bin/activate
 pip install -r requirements.txt
+# recommended: install the package so you can run `smassist` directly
+pip install -e .
 ```
 
 ### 2) Run a scan (dry run)
 ```bash
-PYTHONPATH=src python -m smassist.cli scan --universe sp500 --dry-run
+smassist scan --universe sp500 --dry-run
+# India (NSE listed)
+smassist scan --universe nse --dry-run
 ```
 
 ### Config (recommended)
@@ -35,6 +42,8 @@ If `sp500` universe fetching is blocked (it can 403 depending on network), use o
 
 Precedence: CLI flags > environment variables > `settings.toml` > code defaults.
 
+Note: Scanning *all* NSE listed symbols can be slow and may hit data-source rate limits on free CI. The GitHub Pages site therefore focuses on a limited set of candidates.
+
 Useful env vars:
 - `SMASSIST_LOG_LEVEL`
 - `SMASSIST_UNIVERSE`
@@ -45,17 +54,18 @@ Useful env vars:
 
 ### 3) Single-stock analysis (NSE/BSE/US)
 ```bash
-PYTHONPATH=src python -m smassist.cli analyze --ticker RELIANCE --exchange nse --days 252
+smassist analyze --ticker RELIANCE --exchange nse --days 252
 # or write to a markdown file
-PYTHONPATH=src python -m smassist.cli analyze --ticker TCS --exchange nse --output reports/TCS_analysis.md
+smassist analyze --ticker TCS --exchange nse --output reports/TCS_analysis.md
 ```
 
 ### 4) Update your Excel playbook
 By default this writes to `data/Top500_Sample_Strategy_Playbook.xlsx` (created if missing):
 ```bash
-PYTHONPATH=src python -m smassist.cli scan --universe sp500 \
-  --excel data/Top500_Sample_Strategy_Playbook.xlsx
-Alternative (no PYTHONPATH):
+smassist scan --universe sp500 --excel data/Top500_Sample_Strategy_Playbook.xlsx
+```
+
+Alternative (no install):
 ```bash
 python scripts/run_scan.py scan --universe sp500 --dry-run
 python scripts/run_scan.py analyze --ticker RELIANCE --exchange nse
@@ -64,7 +74,6 @@ python scripts/run_scan.py analyze --ticker RELIANCE --exchange nse
 ### 5) Scoring aggregation
 Use `--aggregate best` (default) to keep the highest-scoring strategy per ticker.
 Use `--aggregate sum` to sum scores across strategies for each ticker.
-```
 
 Options:
 - `--universe sp500` (default) or `--universe-file tickers.txt`

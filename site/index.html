@@ -20,6 +20,26 @@
 
     <main class="container">
       <section>
+        <h2>Categories</h2>
+        <p class="muted">Sector/industry categories are computed from available public metadata for the current candidates.</p>
+        <div class="controls">
+          <label class="inlineLabel">Sector</label>
+          <select id="sectorFilter"></select>
+        </div>
+        <div class="tableWrap">
+          <table id="categoriesTable">
+            <thead>
+              <tr>
+                <th>Sector</th>
+                <th>Candidates</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
         <h2>Good Stocks (Strategy Candidates)</h2>
         <div class="controls">
           <input id="filterTicker" placeholder="Filter by ticker (e.g., AAPL)" />

@@ -7,12 +7,16 @@ import pandas as pd
 
 from .config import ScanConfig
 from .data import fetch_history, load_universe_sp500, load_universe_from_file, load_universe_from_excel
+from .india_universe import companies_to_tickers, load_india_universe
 from .strategies import evaluate_strategies
 
 
 def load_universe(cfg: ScanConfig) -> List[str]:
     if cfg.universe.lower() == "sp500":
         return load_universe_sp500()
+    if cfg.universe.lower() in ("nse",):
+        companies = load_india_universe(cfg.universe)
+        return companies_to_tickers(companies)
     if cfg.universe.lower().startswith("excel:"):
         # Format: excel:/path/to/file.xlsx (uses first sheet)
         path = cfg.universe.split(":", 1)[1]

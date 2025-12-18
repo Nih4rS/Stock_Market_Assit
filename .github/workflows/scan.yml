@@ -20,15 +20,19 @@ jobs:
         uses: actions/setup-python@v5
         with:
           python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: |
+            requirements.txt
+            pyproject.toml
 
       - name: Install deps
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install -e .
 
       - name: Run scan
         run: |
-          python -m smassist.cli scan --universe sp500 --excel data/Top500_Sample_Strategy_Playbook.xlsx
+          smassist scan --universe sp500 --excel data/Top500_Sample_Strategy_Playbook.xlsx
 
       - name: Commit and push if changed
         env:

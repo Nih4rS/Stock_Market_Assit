@@ -77,6 +77,52 @@ function normalizeTicker(t) {
   return t.trim().toUpperCase().replace(/\s+/g, '');
 }
 
+function normalizeText(t) {
+  return (t ?? '').toString().trim();
+}
+
+function getRowSector(row) {
+  const s = normalizeText(row?.Sector);
+  return s || 'Uncategorized';
+}
+
+function renderCategories(sectors) {
+  const tbody = document.querySelector('#categoriesTable tbody');
+  if (!tbody) return;
+  clearChildren(tbody);
+
+  for (const s of sectors || []) {
+    const tr = document.createElement('tr');
+    const tdSector = document.createElement('td');
+    tdSector.textContent = s.name ?? '';
+    const tdCount = document.createElement('td');
+    tdCount.textContent = s.candidates ?? '';
+    tr.appendChild(tdSector);
+    tr.appendChild(tdCount);
+    tbody.appendChild(tr);
+  }
+}
+
+function populateSectorFilter(sectors) {
+  const sel = document.getElementById('sectorFilter');
+  if (!sel) return;
+
+  clearChildren(sel);
+  const allOpt = document.createElement('option');
+  allOpt.value = 'All';
+  allOpt.textContent = 'All';
+  sel.appendChild(allOpt);
+
+  for (const s of sectors || []) {
+    const name = normalizeText(s.name);
+    if (!name) continue;
+    const opt = document.createElement('option');
+    opt.value = name;
+    opt.textContent = name;
+    sel.appendChild(opt);
+  }
+}
+
 function downloadText(filename, text) {
   const blob = new Blob([text], { type: 'text/csv;charset=utf-8' });
   const url = URL.createObjectURL(blob);
@@ -175,18 +221,44 @@ async function main() {
     setText('lastUpdated', `Last updated: ${manifest.last_updated_utc || 'unknown'}`);
 
     const good = await fetchJson('data/good_stocks.json');
-    let rows = good.rows || [];
-    renderGoodStocks(rows);
+    const allRows = good.rows || [];
+
+    let sectors = [];
+    try {
+      const categories = await fetchJson('data/categories.json');
+      sectors = (categories && categories.sectors) ? categories.sectors : [];
+    } catch (_e) {
+      sectors = [];
+    }
+    renderCategories(sectors);
+    populateSectorFilter(sectors);
+
+    const applyFilters = () => {
+      const tickerFilterEl = document.getElementById('filterTicker');
+      const sectorFilterEl = document.getElementById('sectorFilter');
+      const q = normalizeTicker(tickerFilterEl?.value || '');
+      const sectorChoice = normalizeText(sectorFilterEl?.value || 'All');
+
+      let filtered = allRows;
+      if (sectorChoice && sectorChoice !== 'All') {
+        filtered = filtered.filter(r => getRowSector(r) === sectorChoice);
+      }
+      if (q) {
+        filtered = filtered.filter(r => (r.Ticker || '').toUpperCase().includes(q));
+      }
+      renderGoodStocks(filtered);
+    };
+
+    applyFilters();
 
     const news = await fetchJson('data/news.json');
     renderNews(news.items || []);
 
     const filter = document.getElementById('filterTicker');
-    filter.addEventListener('input', () => {
-      const q = normalizeTicker(filter.value || '');
-      if (!q) return renderGoodStocks(rows);
-      renderGoodStocks(rows.filter(r => (r.Ticker || '').toUpperCase().includes(q)));
-    });
+    filter.addEventListener('input', applyFilters);
+
+    const sectorFilter = document.getElementById('sectorFilter');
+    sectorFilter?.addEventListener('change', applyFilters);
 
     document.getElementById('downloadBtn').addEventListener('click', handleDownload);
   } catch (e) {
