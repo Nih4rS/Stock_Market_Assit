@@ -12,21 +12,66 @@ import yfinance as yf
 logger = logging.getLogger(__name__)
 
 
+_DEFAULT_HEADERS = {
+    "User-Agent": "smassist/1.0 (+https://github.com/Nih4rS/Stock_Market_Assit)",
+    "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+}
+
+
+def _try_load_sp500_from_github() -> List[str]:
+    urls = [
+        "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/main/data/constituents.csv",
+        "https://raw.githubusercontent.com/datasets/s-and-p-500-companies/master/data/constituents.csv",
+    ]
+    last_err: Exception | None = None
+    for url in urls:
+        try:
+            resp = requests.get(url, timeout=15, headers=_DEFAULT_HEADERS)
+            resp.raise_for_status()
+            df = pd.read_csv(io.StringIO(resp.text))
+            if "Symbol" not in df.columns:
+                continue
+            tickers = df["Symbol"].astype(str).str.strip().tolist()
+            tickers = [t.replace(".", "-") for t in tickers]
+            tickers = [t for t in tickers if t]
+            if tickers:
+                return tickers
+        except Exception as e:
+            last_err = e
+    if last_err is not None:
+        raise last_err
+    return []
+
+
+def _try_load_sp500_from_wikipedia() -> List[str]:
+    url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+    resp = requests.get(url, timeout=15, headers=_DEFAULT_HEADERS)
+    resp.raise_for_status()
+    tables = pd.read_html(io.StringIO(resp.text), match="Symbol")
+    if not tables:
+        return []
+    df = tables[0]
+    if "Symbol" not in df.columns:
+        return []
+    tickers = df["Symbol"].astype(str).str.replace(".", "-", regex=False).tolist()
+    return [t for t in tickers if t]
+
+
 def load_universe_sp500() -> List[str]:
-    # Try Wikipedia pull; fallback to static few if offline
-    try:
-        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
-        resp = requests.get(url, timeout=10)
-        resp.raise_for_status()
-        tables = pd.read_html(io.StringIO(resp.text), match="Symbol")
-        if tables:
-            df = tables[0]
-            tickers = (
-                df["Symbol"].astype(str).str.replace(".", "-", regex=False).tolist()
-            )
-            return [t for t in tickers if t and t.upper() == t]
-    except Exception:
-        logger.exception("Failed to load S&P 500 universe from Wikipedia; using fallback")
+    # Prefer stable sources that won't 403 in automation.
+    for name, loader in (
+        ("github", _try_load_sp500_from_github),
+        ("wikipedia", _try_load_sp500_from_wikipedia),
+    ):
+        try:
+            tickers = loader()
+            tickers = [t for t in tickers if t and str(t).strip()]
+            if tickers:
+                return tickers
+        except Exception as e:
+            # Avoid noisy stack traces in normal operation.
+            logger.warning("Failed to load S&P 500 universe from %s: %s", name, e)
+
     # Minimal fallback to ensure runnable even offline
     return ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "BRK-B", "AVGO"]
 

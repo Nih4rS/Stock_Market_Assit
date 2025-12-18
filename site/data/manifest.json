@@ -1,6 +1,6 @@
 {
-  "last_updated_utc": "2025-12-18 08:03 UTC",
-  "universe": "sp500",
-  "tickers_count": 8,
+  "last_updated_utc": "2025-12-18 08:25 UTC",
+  "universe": "nse",
+  "tickers_count": 2218,
   "history_period": "2y"
 }

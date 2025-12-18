@@ -1,7 +1,19 @@
 :root{--bg:#0b0f14;--fg:#e7edf5;--muted:#9db0c3;--card:#111824;--line:#243244;--accent:#6aa9ff}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--fg);font:14px/1.4 system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-.container{max-width:1100px;margin:0 auto;padding:20px}
+.skipLink{position:absolute;left:-999px;top:10px;background:var(--card);border:1px solid var(--line);padding:8px 10px;border-radius:10px;color:var(--fg)}
+.skipLink:focus{left:10px;z-index:10}
+
+.layout{max-width:1300px;margin:0 auto;display:grid;grid-template-columns:240px 1fr;gap:16px;padding:20px}
+.sidebar{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:14px;position:sticky;top:20px;height:fit-content}
+.sidebarHeader{display:flex;align-items:baseline;justify-content:space-between;gap:10px;margin-bottom:10px}
+.sidebarTitle{font-weight:700}
+.sidebarNav{display:flex;flex-direction:column;gap:8px}
+.sidebarNav a{padding:8px 10px;border-radius:10px;border:1px solid transparent}
+.sidebarNav a:hover{border-color:var(--line);text-decoration:none;background:#0b1220}
+
+.content{min-width:0}
+.container{max-width:1100px;margin:0 auto;padding:0 0 20px}
 h1{margin:0 0 6px 0;font-size:26px}
 h2{margin:22px 0 10px 0;font-size:18px}
 .muted{color:var(--muted)}
@@ -9,6 +21,7 @@ section{background:var(--card);border:1px solid var(--line);border-radius:12px;p
 .controls{display:flex;gap:10px;align-items:center;margin:8px 0 12px}
 .controls.grid{display:grid;grid-template-columns:2fr 1fr 1fr auto;gap:12px}
 .controls input{width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:12px}
 label{display:block;color:var(--muted);font-size:12px;margin:0 0 6px}
 input{background:#0b1220;border:1px solid var(--line);color:var(--fg);border-radius:10px;padding:10px 12px;outline:none}
 input:focus{border-color:var(--accent)}
@@ -28,3 +41,12 @@ a{color:var(--accent);text-decoration:none}
 a:hover{text-decoration:underline}
 .status{background:#0b1220;border:1px solid var(--line);border-radius:10px;padding:10px;min-height:48px;white-space:pre-wrap}
 .actions{display:flex;align-items:end}
+
+@media (max-width: 980px){
+	.layout{grid-template-columns:1fr}
+	.sidebar{position:relative;top:auto}
+	.container{padding:0 0 18px}
+	.controls.grid{grid-template-columns:1fr;}
+	table{min-width:700px}
+	.grid2{grid-template-columns:1fr}
+}

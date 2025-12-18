@@ -86,18 +86,18 @@ function getRowSector(row) {
   return s || 'Uncategorized';
 }
 
-function renderCategories(sectors) {
-  const tbody = document.querySelector('#categoriesTable tbody');
+function renderCategoryTable(tbodySelector, rows, nameField = 'name') {
+  const tbody = document.querySelector(tbodySelector);
   if (!tbody) return;
   clearChildren(tbody);
 
-  for (const s of sectors || []) {
+  for (const r of rows || []) {
     const tr = document.createElement('tr');
-    const tdSector = document.createElement('td');
-    tdSector.textContent = s.name ?? '';
+    const tdName = document.createElement('td');
+    tdName.textContent = r?.[nameField] ?? '';
     const tdCount = document.createElement('td');
-    tdCount.textContent = s.candidates ?? '';
-    tr.appendChild(tdSector);
+    tdCount.textContent = r?.candidates ?? '';
+    tr.appendChild(tdName);
     tr.appendChild(tdCount);
     tbody.appendChild(tr);
   }
@@ -224,20 +224,38 @@ async function main() {
     const allRows = good.rows || [];
 
     let sectors = [];
+    let industries = [];
+    let sectorIndustries = {};
     try {
       const categories = await fetchJson('data/categories.json');
       sectors = (categories && categories.sectors) ? categories.sectors : [];
+      industries = (categories && categories.industries) ? categories.industries : [];
+      sectorIndustries = (categories && categories.sector_industries) ? categories.sector_industries : {};
     } catch (_e) {
       sectors = [];
+      industries = [];
+      sectorIndustries = {};
     }
-    renderCategories(sectors);
+    renderCategoryTable('#categoriesSectorsTable tbody', sectors, 'name');
     populateSectorFilter(sectors);
+
+    const renderIndustriesForSector = (sectorChoice) => {
+      const choice = normalizeText(sectorChoice || 'All');
+      if (!choice || choice === 'All') {
+        renderCategoryTable('#categoriesIndustriesTable tbody', industries, 'name');
+        return;
+      }
+      const rows = sectorIndustries?.[choice] || [];
+      renderCategoryTable('#categoriesIndustriesTable tbody', rows, 'name');
+    };
 
     const applyFilters = () => {
       const tickerFilterEl = document.getElementById('filterTicker');
       const sectorFilterEl = document.getElementById('sectorFilter');
       const q = normalizeTicker(tickerFilterEl?.value || '');
       const sectorChoice = normalizeText(sectorFilterEl?.value || 'All');
+
+      renderIndustriesForSector(sectorChoice);
 
       let filtered = allRows;
       if (sectorChoice && sectorChoice !== 'All') {

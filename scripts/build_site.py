@@ -67,6 +67,7 @@ def build_categories(good_rows: list[dict], meta: dict[str, dict]) -> dict:
     # Aggregate by sector/industry among candidate rows
     sector_counts: dict[str, int] = {}
     industry_counts: dict[str, int] = {}
+    industry_by_sector: dict[str, dict[str, int]] = {}
 
     for r in good_rows:
         t = r.get("Ticker")
@@ -75,10 +76,20 @@ def build_categories(good_rows: list[dict], meta: dict[str, dict]) -> dict:
         industry = m.get("industry") or "Uncategorized"
         sector_counts[sector] = sector_counts.get(sector, 0) + 1
         industry_counts[industry] = industry_counts.get(industry, 0) + 1
+        by_sector = industry_by_sector.setdefault(sector, {})
+        by_sector[industry] = by_sector.get(industry, 0) + 1
 
     sectors = [{"name": k, "candidates": v} for k, v in sorted(sector_counts.items(), key=lambda x: (-x[1], x[0]))]
     industries = [{"name": k, "candidates": v} for k, v in sorted(industry_counts.items(), key=lambda x: (-x[1], x[0]))]
-    return {"sectors": sectors, "industries": industries}
+
+    sector_industries: dict[str, list[dict]] = {}
+    for sector, ind_map in industry_by_sector.items():
+        sector_industries[sector] = [
+            {"name": k, "candidates": v}
+            for k, v in sorted(ind_map.items(), key=lambda x: (-x[1], x[0]))
+        ]
+
+    return {"sectors": sectors, "industries": industries, "sector_industries": sector_industries}
 
 
 def build_prices(tickers: list[str], out_dir: Path, period: str = "2y") -> None:

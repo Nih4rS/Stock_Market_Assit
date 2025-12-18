@@ -4,102 +4,136 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <title>Stock Market Assist</title>
+    <meta name="description" content="Daily end-of-day scan dashboard for NSE/BSE strategy candidates with news and downloadable historical data." />
     <link rel="stylesheet" href="assets/style.css" />
   </head>
   <body>
-    <header class="container">
-      <h1>Stock Market Assist</h1>
-      <p class="muted">
-        <a href="https://github.com/Nih4rS/Stock_Market_Assit" target="_blank" rel="noreferrer">View source on GitHub</a>
-      </p>
-      <p class="muted">
-        Daily end-of-day scan + news snapshot. Data is informational only.
-      </p>
-      <p id="lastUpdated" class="muted"></p>
-    </header>
+    <a class="skipLink" href="#main">Skip to content</a>
 
-    <main class="container">
-      <section>
-        <h2>Categories</h2>
-        <p class="muted">Sector/industry categories are computed from available public metadata for the current candidates.</p>
-        <div class="controls">
-          <label class="inlineLabel">Sector</label>
-          <select id="sectorFilter"></select>
+    <div class="layout">
+      <aside class="sidebar" aria-label="Site navigation">
+        <div class="sidebarHeader">
+          <div class="sidebarTitle">Stock Market Assist</div>
+          <a class="muted" href="https://github.com/Nih4rS/Stock_Market_Assit" target="_blank" rel="noreferrer">View source</a>
         </div>
-        <div class="tableWrap">
-          <table id="categoriesTable">
-            <thead>
-              <tr>
-                <th>Sector</th>
-                <th>Candidates</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
+        <nav class="sidebarNav" aria-label="Sections">
+          <a href="#categories">Categories</a>
+          <a href="#good-stocks">Good Stocks</a>
+          <a href="#news">News</a>
+          <a href="#download">Download</a>
+        </nav>
+      </aside>
 
-      <section>
-        <h2>Good Stocks (Strategy Candidates)</h2>
-        <div class="controls">
-          <input id="filterTicker" placeholder="Filter by ticker (e.g., AAPL)" />
-        </div>
-        <div class="tableWrap">
-          <table id="goodStocksTable">
-            <thead>
-              <tr>
-                <th>Ticker</th>
-                <th>Strategy</th>
-                <th>Score</th>
-                <th>Close</th>
-                <th>RSI14</th>
-                <th>SMA50</th>
-                <th>SMA200</th>
-                <th>Dist 52w High</th>
-                <th>Vol 5x20</th>
-              </tr>
-            </thead>
-            <tbody></tbody>
-          </table>
-        </div>
-      </section>
+      <div class="content">
+        <header class="container">
+          <h1>Stock Market Assist</h1>
+          <p class="muted">Daily end-of-day scan + news snapshot. Data is informational only.</p>
+          <p id="lastUpdated" class="muted"></p>
+        </header>
 
-      <section>
-        <h2>Recent News (Top Candidates)</h2>
-        <ul id="newsList" class="list"></ul>
-      </section>
+        <main id="main" class="container">
+          <section id="categories">
+            <h2>Categories</h2>
+            <p class="muted">Categories/subcategories are computed from available public metadata for the current candidates.</p>
+            <div class="controls">
+              <label for="sectorFilter" class="inlineLabel">Sector</label>
+              <select id="sectorFilter" aria-label="Filter by sector"></select>
+            </div>
 
-      <section>
-        <h2>Download Historical Data</h2>
-        <p class="muted">
-          Select tickers and a date range. Download is generated in your browser from published CSVs.
-        </p>
-        <div class="controls grid">
-          <div>
-            <label>Tickers (comma-separated)</label>
-            <input id="tickersInput" placeholder="AAPL, MSFT, NVDA" />
-          </div>
-          <div>
-            <label>Start date</label>
-            <input id="startDate" type="date" />
-          </div>
-          <div>
-            <label>End date</label>
-            <input id="endDate" type="date" />
-          </div>
-          <div class="actions">
-            <button id="downloadBtn">Download CSV</button>
-          </div>
-        </div>
-        <pre id="downloadStatus" class="status"></pre>
-      </section>
-    </main>
+            <div class="grid2">
+              <div>
+                <p class="muted" style="margin:0 0 8px">Categories (Sectors)</p>
+                <div class="tableWrap">
+                  <table id="categoriesSectorsTable">
+                    <thead>
+                      <tr>
+                        <th>Sector</th>
+                        <th>Candidates</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+              <div>
+                <p class="muted" style="margin:0 0 8px">Subcategories (Industries)</p>
+                <div class="tableWrap">
+                  <table id="categoriesIndustriesTable">
+                    <thead>
+                      <tr>
+                        <th>Industry</th>
+                        <th>Candidates</th>
+                      </tr>
+                    </thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
 
-    <footer class="container muted">
-      <p>
-        Built from daily scheduled workflows. Source data via public endpoints.
-      </p>
-    </footer>
+          <section id="good-stocks">
+            <h2>Good Stocks (Strategy Candidates)</h2>
+            <div class="controls">
+              <label for="filterTicker" class="inlineLabel">Ticker</label>
+              <input id="filterTicker" placeholder="Filter by ticker (e.g., RELIANCE.NS)" aria-label="Filter by ticker" />
+            </div>
+            <div class="tableWrap">
+              <table id="goodStocksTable">
+                <thead>
+                  <tr>
+                    <th>Ticker</th>
+                    <th>Strategy</th>
+                    <th>Score</th>
+                    <th>Close</th>
+                    <th>RSI14</th>
+                    <th>SMA50</th>
+                    <th>SMA200</th>
+                    <th>Dist 52w High</th>
+                    <th>Vol 5x20</th>
+                  </tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </section>
+
+          <section id="news">
+            <h2>Recent News (Top Candidates)</h2>
+            <ul id="newsList" class="list"></ul>
+          </section>
+
+          <section id="download">
+            <h2>Download Historical Data</h2>
+            <p class="muted">
+              Select tickers and a date range. Download is generated in your browser from published CSVs.
+            </p>
+            <div class="controls grid">
+              <div>
+                <label for="tickersInput">Tickers (comma-separated)</label>
+                <input id="tickersInput" placeholder="RELIANCE.NS, TCS.NS" />
+              </div>
+              <div>
+                <label for="startDate">Start date</label>
+                <input id="startDate" type="date" />
+              </div>
+              <div>
+                <label for="endDate">End date</label>
+                <input id="endDate" type="date" />
+              </div>
+              <div class="actions">
+                <button id="downloadBtn">Download CSV</button>
+              </div>
+            </div>
+            <pre id="downloadStatus" class="status"></pre>
+          </section>
+        </main>
+
+        <footer class="container muted">
+          <p>Built from daily scheduled workflows. Source data via public endpoints.</p>
+        </footer>
+      </div>
+    </div>
 
     <script src="assets/app.js"></script>
   </body>

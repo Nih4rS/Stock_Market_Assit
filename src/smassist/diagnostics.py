@@ -6,7 +6,10 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import List, Optional
 
-from .data import load_universe_sp500, fetch_history
+from .data import fetch_history
+from .settings import load_settings
+from .config import ScanConfig
+from .scanner import load_universe
 
 
 @dataclass
@@ -38,10 +41,20 @@ def _check_excel_path(path: str) -> CheckResult:
 
 def _check_universe() -> CheckResult:
     try:
-        tickers = load_universe_sp500()
-        return CheckResult("universe:sp500", bool(tickers), f"tickers={len(tickers)}")
+        settings = load_settings(os.getenv("SMASSIST_CONFIG"))
+        cfg = ScanConfig(
+            universe=settings.scan.universe,
+            strategies=[],
+            lookback_days=settings.scan.lookback_days,
+        )
+        tickers = load_universe(cfg)
+        return CheckResult(
+            "universe:configured",
+            bool(tickers),
+            f"universe={settings.scan.universe}, tickers={len(tickers)}",
+        )
     except Exception as e:
-        return CheckResult("universe:sp500", False, str(e))
+        return CheckResult("universe:configured", False, str(e))
 
 
 def _check_price_fetch(ticker: str = "AAPL") -> CheckResult:
