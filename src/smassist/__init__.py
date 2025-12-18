@@ -5,4 +5,9 @@ __all__ = [
     "scanner",
     "excel_io",
     "analysis",
+    "exceptions",
+    "log",
+    "settings",
+    "diagnostics",
+    "schemas",
 ]

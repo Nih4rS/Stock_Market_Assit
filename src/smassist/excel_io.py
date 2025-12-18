@@ -2,9 +2,12 @@ from __future__ import annotations
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Optional
 
 import pandas as pd
 from openpyxl import Workbook, load_workbook
+
+from .schemas import GOOD_STOCKS_COLUMNS, ordered_df
 
 
 GOOD_SHEET = "GoodStocks"
@@ -16,14 +19,35 @@ def _ensure_workbook(path: Path) -> None:
         path.parent.mkdir(parents=True, exist_ok=True)
         wb = Workbook()
         ws = wb.active
+        if ws is None:
+            ws = wb.create_sheet(GOOD_SHEET)
         ws.title = GOOD_SHEET
         wb.create_sheet(RUNLOG_SHEET)
         wb.save(path)
 
 
+def _to_float_or_none(val: Any) -> Optional[float]:
+    if val is None:
+        return None
+    try:
+        if pd.isna(val):
+            return None
+    except Exception:
+        pass
+    try:
+        return float(val)
+    except Exception:
+        return None
+
+
 def write_good_stocks(excel_path: str | Path, df: pd.DataFrame) -> None:
     path = Path(excel_path)
     _ensure_workbook(path)
+
+    # Normalize/validate columns so Excel output is deterministic.
+    df = df.copy() if df is not None else pd.DataFrame()
+    if not df.empty:
+        df = ordered_df(df, [c for c in GOOD_STOCKS_COLUMNS if c != "Timestamp"])
 
     wb = load_workbook(path)
     if GOOD_SHEET in wb.sheetnames:
@@ -36,19 +60,7 @@ def write_good_stocks(excel_path: str | Path, df: pd.DataFrame) -> None:
 
     # Write header
     timestamp = datetime.utcnow().strftime("%Y-%m-%d %H:%M UTC")
-    columns = [
-        "Timestamp",
-        "Ticker",
-        "Strategy",
-        "Score",
-        "Close",
-        "RSI14",
-        "SMA50",
-        "SMA200",
-        "Dist_52wHigh",
-        "Vol5x20",
-    ]
-    ws.append(columns)
+    ws.append(GOOD_STOCKS_COLUMNS)
 
     # Write rows
     for _, row in df.iterrows():
@@ -56,13 +68,13 @@ def write_good_stocks(excel_path: str | Path, df: pd.DataFrame) -> None:
             timestamp,
             row.get("Ticker"),
             row.get("Strategy"),
-            float(row.get("Score", 0.0)) if pd.notna(row.get("Score")) else None,
-            float(row.get("Close")) if pd.notna(row.get("Close")) else None,
-            float(row.get("RSI14")) if pd.notna(row.get("RSI14")) else None,
-            float(row.get("SMA50")) if pd.notna(row.get("SMA50")) else None,
-            float(row.get("SMA200")) if pd.notna(row.get("SMA200")) else None,
-            float(row.get("Dist_52wHigh")) if pd.notna(row.get("Dist_52wHigh")) else None,
-            float(row.get("Vol5x20")) if pd.notna(row.get("Vol5x20")) else None,
+            _to_float_or_none(row.get("Score", 0.0)),
+            _to_float_or_none(row.get("Close")),
+            _to_float_or_none(row.get("RSI14")),
+            _to_float_or_none(row.get("SMA50")),
+            _to_float_or_none(row.get("SMA200")),
+            _to_float_or_none(row.get("Dist_52wHigh")),
+            _to_float_or_none(row.get("Vol5x20")),
         ])
 
     # RunLog

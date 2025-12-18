@@ -1,12 +1,15 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+import logging
 from typing import Dict, List, Tuple
 
 import numpy as np
 import pandas as pd
 
 from .data import sma, rsi
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -51,7 +54,7 @@ def strat_rsi_momentum(df: pd.DataFrame) -> Tuple[bool, float, Dict[str, float]]
     rising = False
     if len(r) >= 5:
         last5 = r.diff().iloc[-5:]
-        positives = ((last5 > 0).astype(int)).sum()
+        positives = sum(1 for x in (last5 > 0).tolist() if x)
         rising = bool(positives >= 3)
     cond = (val >= 55) & (val <= 70) & rising
     score = 1.5 if cond else 0.0
@@ -103,6 +106,7 @@ def evaluate_strategies(ticker: str, df: pd.DataFrame, strategies: List[str]) ->
         try:
             ok, score, metrics = func(df)
         except Exception:
+            logger.exception("Strategy evaluation failed", extra={"ticker": ticker, "strategy": s})
             ok, score, metrics = False, 0.0, {}
         if ok and score > 0:
             signals.append(Signal(ticker, s, float(score), metrics))

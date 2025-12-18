@@ -6,13 +6,17 @@ from typing import Dict, List
 import pandas as pd
 
 from .config import ScanConfig
-from .data import fetch_history, load_universe_sp500, load_universe_from_file
+from .data import fetch_history, load_universe_sp500, load_universe_from_file, load_universe_from_excel
 from .strategies import evaluate_strategies
 
 
 def load_universe(cfg: ScanConfig) -> List[str]:
     if cfg.universe.lower() == "sp500":
         return load_universe_sp500()
+    if cfg.universe.lower().startswith("excel:"):
+        # Format: excel:/path/to/file.xlsx (uses first sheet)
+        path = cfg.universe.split(":", 1)[1]
+        return load_universe_from_excel(path)
     return load_universe_from_file(cfg.universe)
 
 

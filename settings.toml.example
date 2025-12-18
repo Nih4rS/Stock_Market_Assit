@@ -1,0 +1,20 @@
+# Copy to settings.toml to enable
+
+[app]
+log_level = "INFO"
+
+[scan]
+# 'sp500' or path to a tickers file or excel:/path/to.xlsx
+universe = "sp500"
+lookback_days = 252
+excel = "data/Top500_Sample_Strategy_Playbook.xlsx"
+aggregate = "best" # best|sum
+strategies = ["golden_cross", "rsi_momentum", "breakout_52w", "volume_surge"]
+
+# Reserved for future fine-tuning of thresholds
+[strategy.rsi_momentum]
+low = 55
+high = 70
+
+[strategy.volume_surge]
+ratio = 1.5

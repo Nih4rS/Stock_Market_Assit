@@ -2,20 +2,23 @@ from __future__ import annotations
 
 import io
 import time
+import logging
 from typing import Iterable, List, Optional
 
 import pandas as pd
 import requests
 import yfinance as yf
 
+logger = logging.getLogger(__name__)
+
 
 def load_universe_sp500() -> List[str]:
     # Try Wikipedia pull; fallback to static few if offline
     try:
-        tables = pd.read_html(
-            "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies",
-            match="Symbol",
-        )
+        url = "https://en.wikipedia.org/wiki/List_of_S%26P_500_companies"
+        resp = requests.get(url, timeout=10)
+        resp.raise_for_status()
+        tables = pd.read_html(io.StringIO(resp.text), match="Symbol")
         if tables:
             df = tables[0]
             tickers = (
@@ -23,7 +26,7 @@ def load_universe_sp500() -> List[str]:
             )
             return [t for t in tickers if t and t.upper() == t]
     except Exception:
-        pass
+        logger.exception("Failed to load S&P 500 universe from Wikipedia; using fallback")
     # Minimal fallback to ensure runnable even offline
     return ["AAPL", "MSFT", "NVDA", "AMZN", "GOOGL", "META", "BRK-B", "AVGO"]
 
@@ -31,6 +34,36 @@ def load_universe_sp500() -> List[str]:
 def load_universe_from_file(path: str) -> List[str]:
     with open(path, "r", encoding="utf-8") as f:
         return [line.strip() for line in f if line.strip() and not line.startswith("#")]
+
+
+def load_universe_from_excel(path: str, sheet: str | int | None = None) -> List[str]:
+    """Load tickers from an Excel file.
+
+    Tries a 'Ticker' column first; otherwise uses the first column.
+    This is intentionally forgiving so it can work with many playbook formats.
+    """
+    df = pd.read_excel(path, sheet_name=sheet if sheet is not None else 0)
+    if df.empty:
+        return []
+    if "Ticker" in df.columns:
+        s = df["Ticker"]
+    else:
+        s = df[df.columns[0]]
+    tickers = (
+        s.astype(str)
+        .str.strip()
+        .replace({"nan": "", "None": ""})
+        .tolist()
+    )
+    out = []
+    for t in tickers:
+        if not t:
+            continue
+        if t.startswith("#"):
+            continue
+        out.append(t)
+    # de-dupe preserve order
+    return list(dict.fromkeys(out))
 
 
 def fetch_history(
@@ -62,7 +95,7 @@ def fetch_history(
                     result[t] = df
                     break
             except Exception:
-                pass
+                logger.exception("Price fetch failed", extra={"ticker": t, "attempt": attempt + 1})
             time.sleep(backoff * (attempt + 1))
     return result
 

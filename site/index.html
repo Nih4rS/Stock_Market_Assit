@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>Stock Market Assist</title>
+    <link rel="stylesheet" href="assets/style.css" />
+  </head>
+  <body>
+    <header class="container">
+      <h1>Stock Market Assist</h1>
+      <p class="muted">
+        Daily end-of-day scan + news snapshot. Data is informational only.
+      </p>
+      <p id="lastUpdated" class="muted"></p>
+    </header>
+
+    <main class="container">
+      <section>
+        <h2>Good Stocks (Strategy Candidates)</h2>
+        <div class="controls">
+          <input id="filterTicker" placeholder="Filter by ticker (e.g., AAPL)" />
+        </div>
+        <div class="tableWrap">
+          <table id="goodStocksTable">
+            <thead>
+              <tr>
+                <th>Ticker</th>
+                <th>Strategy</th>
+                <th>Score</th>
+                <th>Close</th>
+                <th>RSI14</th>
+                <th>SMA50</th>
+                <th>SMA200</th>
+                <th>Dist 52w High</th>
+                <th>Vol 5x20</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+
+      <section>
+        <h2>Recent News (Top Candidates)</h2>
+        <ul id="newsList" class="list"></ul>
+      </section>
+
+      <section>
+        <h2>Download Historical Data</h2>
+        <p class="muted">
+          Select tickers and a date range. Download is generated in your browser from published CSVs.
+        </p>
+        <div class="controls grid">
+          <div>
+            <label>Tickers (comma-separated)</label>
+            <input id="tickersInput" placeholder="AAPL, MSFT, NVDA" />
+          </div>
+          <div>
+            <label>Start date</label>
+            <input id="startDate" type="date" />
+          </div>
+          <div>
+            <label>End date</label>
+            <input id="endDate" type="date" />
+          </div>
+          <div class="actions">
+            <button id="downloadBtn">Download CSV</button>
+          </div>
+        </div>
+        <pre id="downloadStatus" class="status"></pre>
+      </section>
+    </main>
+
+    <footer class="container muted">
+      <p>
+        Built from daily scheduled workflows. Source data via public endpoints.
+      </p>
+    </footer>
+
+    <script src="assets/app.js"></script>
+  </body>
+</html>

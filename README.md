@@ -24,6 +24,23 @@ pip install -r requirements.txt
 PYTHONPATH=src python -m smassist.cli scan --universe sp500 --dry-run
 ```
 
+### Config (recommended)
+Copy [settings.toml.example](settings.toml.example) to `settings.toml` and edit values.
+
+If `sp500` universe fetching is blocked (it can 403 depending on network), use one of:
+- A local tickers file: `scan.universe = "data/tickers_sample.txt"`
+- Your playbook Excel as the universe: `scan.universe = "excel:data/Top500_Sample_Strategy_Playbook.xlsx"`
+
+Precedence: CLI flags > environment variables > `settings.toml` > code defaults.
+
+Useful env vars:
+- `SMASSIST_LOG_LEVEL`
+- `SMASSIST_UNIVERSE`
+- `SMASSIST_STRATEGIES` (comma-separated)
+- `SMASSIST_LOOKBACK_DAYS`
+- `SMASSIST_EXCEL`
+- `SMASSIST_AGGREGATE`
+
 ### 3) Single-stock analysis (NSE/BSE/US)
 ```bash
 PYTHONPATH=src python -m smassist.cli analyze --ticker RELIANCE --exchange nse --days 252
@@ -71,3 +88,19 @@ A workflow is provided in `.github/workflows/scan.yml`. To enable auto-updates:
 ## Notes
 - This project uses public data via `yfinance` and may be rate-limited.
 - Strategy logic is educational and not investment advice.
+
+## GitHub Pages (free website)
+This repo includes a static site in `site/` that is rebuilt daily (end-of-day UTC) and deployed to GitHub Pages.
+
+What it provides:
+- Daily `Good Stocks` table from the strategy scan
+- Recent news snapshot for top candidates
+- Free in-browser historical CSV downloads for selected tickers and date ranges
+
+Workflow:
+- Pages build/deploy: `.github/workflows/pages.yml`
+
+Enable it:
+1. Go to GitHub repo → Settings → Pages
+2. Under “Build and deployment”, select “GitHub Actions”
+3. Run the workflow once (Actions tab) to publish the first deploy
