@@ -46,10 +46,14 @@ def fetch_google_news(query: str, limit: int = 5) -> List[RssNewsItem]:
         for e in (feed.entries or [])[: max(0, int(limit))]:
             title = getattr(e, "title", "") or ""
             link = getattr(e, "link", None)
-            source = None
-            if hasattr(e, "source") and isinstance(getattr(e, "source"), dict):
-                source = e.source.get("title")
-            publisher = source or getattr(e, "author", None)
+            source_title = None
+            src = getattr(e, "source", None)
+            if isinstance(src, dict):
+                source_title = src.get("title")
+            elif isinstance(src, list) and src and isinstance(src[0], dict):
+                source_title = src[0].get("title")
+
+            publisher = source_title or getattr(e, "author", None)
             published = _fmt_published(getattr(e, "published_parsed", None))
             items.append(RssNewsItem(title=title, publisher=publisher, link=link, published=published))
         return items

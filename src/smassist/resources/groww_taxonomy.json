@@ -1,0 +1,186 @@
+{
+  "sectors": {
+    "Agricultural": [
+      "Pesticides & Agrochemicals",
+      "Aquaculture",
+      "Fertilizers",
+      "Floriculture",
+      "Agriculture"
+    ],
+    "Apparel & Accessories": [
+      "Diamond & Jewellery",
+      "Watches & Accessories",
+      "Footwear"
+    ],
+    "Automobile & Ancillaries": [
+      "Auto Ancillary",
+      "Automobile Two & Three Wheelers",
+      "Automobiles - Passenger Cars",
+      "Automobiles - Tractors",
+      "Automobiles - Trucks/Lcv",
+      "Bearings",
+      "Tyres & Allied",
+      "Automobiles - Dealers & Distributors",
+      "Cycles"
+    ],
+    "Banking": [
+      "Bank - Private",
+      "Bank - Public"
+    ],
+    "Consumer Durables": [
+      "Air Conditioners",
+      "Consumer Durables - Domestic Appliances",
+      "Consumer Durables - Electronics"
+    ],
+    "Retailing": [
+      "Educational Institutions",
+      "e-Commerce"
+    ],
+    "Derived Materials": [
+      "Abrasives",
+      "Aluminium & Aluminium Products",
+      "Castings/Forgings",
+      "Ceramics/Marble/Granite/Sanitaryware",
+      "Fasteners",
+      "Forgings",
+      "Glass",
+      "Laminates/Decoratives",
+      "Lubricants",
+      "Packaging",
+      "Paints",
+      "Paper & Paper Products",
+      "Plastic Products",
+      "Rubber Products",
+      "Steel & Iron Products",
+      "Wood & Wood Products"
+    ],
+    "Energy": [
+      "Batteries",
+      "Industrial Gases & Fuels",
+      "Oil Exploration",
+      "Petrochemicals",
+      "Power Generation/Distribution",
+      "Gas Transmission/Marketing",
+      "Refineries"
+    ],
+    "Financial": [
+      "Finance - Housing",
+      "Finance - Investment",
+      "Finance - NBFC",
+      "Finance - Stock Broking",
+      "Finance Term Lending",
+      "Ratings",
+      "Trading",
+      "Insurance",
+      "Index",
+      "ETF",
+      "Finance - Others",
+      "G-Sec",
+      "Finance - Asset Management"
+    ],
+    "FMCG": [
+      "Breweries & Distilleries",
+      "Cigarettes/Tobacco",
+      "Consumer Food",
+      "Detergents & Soaps",
+      "Household & Personal Products",
+      "Printing & Stationery",
+      "Sugar",
+      "Tea/Coffee"
+    ],
+    "Healthcare": [
+      "Hospital & Healthcare Services",
+      "Medical Equipment/Supplies/Accessories",
+      "Pharmaceuticals & Drugs"
+    ],
+    "Hospitality & Travel": [
+      "Airlines",
+      "Amusement Parks/Recreation/Club",
+      "Hotel Resort & Restaurants",
+      "Travel Services"
+    ],
+    "Industrial Products": [
+      "Compressors / Pumps",
+      "Electric Equipment",
+      "Electrodes & Welding Equipment",
+      "Electronics - Components",
+      "Engineering - Industrial Equipments",
+      "Refractories"
+    ],
+    "Industries": [
+      "Construction - Real Estate",
+      "Diesel Engines",
+      "Engineering",
+      "Engineering - Construction",
+      "Railways Wagons",
+      "Ship Building",
+      "Defence"
+    ],
+    "IT Industry": [
+      "IT - Education",
+      "IT - Hardware",
+      "IT - Software",
+      "BPO/ITeS",
+      "IT - Networking"
+    ],
+    "Logistics & Freight": [
+      "Courier Services",
+      "Logistics",
+      "Shipping",
+      "Port"
+    ],
+    "Media & Entertainment": [
+      "Animation",
+      "Film Production Distribution & Entertainment",
+      "Photographic Products",
+      "TV Broadcasting & Software Production",
+      "Printing And Publishing"
+    ],
+    "Others": [
+      "Diversified",
+      "Miscellaneous",
+      "Unspecified",
+      "Other"
+    ],
+    "Raw Material": [
+      "Carbon Black",
+      "Cement & Construction Materials",
+      "Chemicals",
+      "Dyes & Pigments",
+      "Leather",
+      "Metal - Ferrous",
+      "Metal - Non Ferrous",
+      "Mining & Minerals",
+      "Solvent Extraction",
+      "Steel/Sponge Iron/Pig Iron",
+      "Ferro & Silica Manganese"
+    ],
+    "Tele-Communication": [
+      "Cable",
+      "Transmission Towers / Equipments",
+      "Telecommunication - Equipment",
+      "Telecommunication - Service Provider"
+    ],
+    "Textile Industry": [
+      "Textile",
+      "Textile - Machinery",
+      "Textile - Manmade Fibres",
+      "Textile - Spinning",
+      "Textile - Weaving"
+    ]
+  },
+  "indices": [
+    "Nifty Bank",
+    "Nifty Next 50",
+    "Nifty Midcap 100",
+    "SENSEX",
+    "Nifty 50",
+    "Nifty 100",
+    "BSE 100"
+  ],
+  "market_cap_buckets": [
+    "Small",
+    "Mid",
+    "Large"
+  ]
+}

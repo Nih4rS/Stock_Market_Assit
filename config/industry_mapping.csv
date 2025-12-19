@@ -1,0 +1,8 @@
+# source,source_industry,sector,subsector
+# Fill this mapping to normalize exchange-specific industry labels into your Groww-like taxonomy.
+# Examples:
+# nse,Private Sector Bank,Banking,Bank - Private
+# nse,Public Sector Bank,Banking,Bank - Public
+# nse,Pharmaceuticals,Healthcare,Pharmaceuticals & Drugs
+# nse,IT Services,IT Industry,IT - Software
+# nse,Refineries,Energy,Refineries

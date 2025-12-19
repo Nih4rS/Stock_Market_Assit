@@ -53,13 +53,17 @@ def fetch_company_meta_yf(tickers: list[str]) -> dict[str, dict]:
     for t in tickers:
         try:
             info = yf.Ticker(t).info or {}
+            market_cap = info.get("marketCap")
+            market_price = info.get("regularMarketPrice") or info.get("currentPrice")
             out[t] = {
                 "name": info.get("shortName") or info.get("longName") or None,
                 "sector": info.get("sector") or None,
                 "industry": info.get("industry") or None,
+                "market_cap": market_cap if isinstance(market_cap, (int, float)) else None,
+                "market_price": market_price if isinstance(market_price, (int, float)) else None,
             }
         except Exception:
-            out[t] = {"name": None, "sector": None, "industry": None}
+            out[t] = {"name": None, "sector": None, "industry": None, "market_cap": None, "market_price": None}
     return out
 
 
@@ -190,6 +194,11 @@ def build_site() -> None:
             r["Sector"] = m.get("sector")
         if m.get("industry"):
             r["Industry"] = m.get("industry")
+        if m.get("market_price") is not None:
+            r["MarketPrice"] = float(m.get("market_price"))
+        if m.get("market_cap") is not None:
+            # Convert to crores (1 Cr = 10,000,000)
+            r["MarketCapCr"] = float(m.get("market_cap")) / 1e7
 
     now_utc = datetime.now(timezone.utc).strftime("%Y-%m-%d %H:%M UTC")
     write_json(data_dir / "manifest.json", {
