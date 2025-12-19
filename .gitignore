@@ -16,6 +16,9 @@ __pycache__/
 /data/
 !data/.gitkeep
 
+# Generated website artifacts (built by scripts/build_site.py and CI)
+/site/data/
+
 # Logs
 logs/
 
