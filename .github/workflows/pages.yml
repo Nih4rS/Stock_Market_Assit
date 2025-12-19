@@ -37,6 +37,12 @@ jobs:
           python -m pip install --upgrade pip
           pip install -e .
 
+      - name: Build canonical DB (offline)
+        env:
+          SMASSIST_LOG_LEVEL: INFO
+        run: |
+          python scripts/build_db.py --offline
+
       - name: Build site data
         env:
           SMASSIST_LOG_LEVEL: INFO

@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import json
 import os
+import shutil
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -20,6 +21,7 @@ if str(src_path) not in sys.path:
 from smassist.settings import load_settings
 from smassist.config import ScanConfig
 from smassist.india_universe import load_india_universe, companies_to_meta
+from smassist.database import connect_db
 from smassist.scanner import load_universe, run_scan
 from smassist.news_rss import fetch_google_news
 from smassist.log import configure_logging
@@ -138,6 +140,87 @@ def build_prices(tickers: list[str], out_dir: Path, period: str = "2y") -> None:
             df.to_csv(out_dir / f"{safe_filename(t)}.csv", index=False)
 
 
+def export_db_site_data(*, db_path: str, data_dir: Path, universe_code: str, max_stocks: int = 5000) -> None:
+    """Export DB-backed metadata for the website.
+
+    This keeps the Pages site rebuildable from the single SQLite database.
+    """
+    p = Path(db_path)
+    if not p.exists():
+        return
+
+    universe_code = str(universe_code).strip().lower()
+    with connect_db(p) as conn:
+        # Taxonomy: sectors + subsectors
+        sectors = conn.execute(
+            "SELECT sector_id, sector_name FROM sectors ORDER BY sector_name"
+        ).fetchall()
+        subsectors = conn.execute(
+            """
+            SELECT s.sector_name, ss.subsector_name
+              FROM subsectors ss
+              JOIN sectors s ON s.sector_id = ss.sector_id
+             ORDER BY s.sector_name, ss.subsector_name
+            """
+        ).fetchall()
+
+        sector_to_subs: dict[str, list[str]] = {}
+        for r in subsectors:
+            sector_to_subs.setdefault(r["sector_name"], []).append(r["subsector_name"])
+
+        write_json(
+            data_dir / "taxonomy.json",
+            {
+                "sectors": [r["sector_name"] for r in sectors],
+                "subsectors_by_sector": sector_to_subs,
+            },
+        )
+
+        # Universe stocks
+        row = conn.execute(
+            "SELECT universe_id FROM universes WHERE universe_code = ?",
+            (universe_code,),
+        ).fetchone()
+        if not row:
+            return
+        universe_id = int(row["universe_id"])
+
+        rows = conn.execute(
+            """
+            SELECT s.symbol_nse, s.symbol_bse, s.company_name, s.isin, s.nse_series, s.bse_scrip_code, s.status
+              FROM universe_membership um
+              JOIN stocks s ON s.stock_id = um.stock_id
+             WHERE um.universe_id = ? AND um.included = 1
+             ORDER BY COALESCE(s.symbol_nse, s.symbol_bse, s.isin, s.company_name)
+             LIMIT ?
+            """,
+            (universe_id, int(max_stocks)),
+        ).fetchall()
+
+        stocks_out: list[dict] = []
+        for r in rows:
+            stocks_out.append(
+                {
+                    "symbol_nse": r["symbol_nse"],
+                    "symbol_bse": r["symbol_bse"],
+                    "company_name": r["company_name"],
+                    "isin": r["isin"],
+                    "nse_series": r["nse_series"],
+                    "bse_scrip_code": r["bse_scrip_code"],
+                    "status": r["status"],
+                }
+            )
+
+        write_json(
+            data_dir / "universe_stocks.json",
+            {
+                "universe_code": universe_code,
+                "row_count": len(stocks_out),
+                "rows": stocks_out,
+            },
+        )
+
+
 def build_site() -> None:
     settings = load_settings(os.getenv("SMASSIST_CONFIG"))
     configure_logging(settings.log_level)
@@ -152,6 +235,10 @@ def build_site() -> None:
     except Exception:
         max_tickers = 250
 
+    # Keep builds deterministic by clearing previously generated outputs.
+    if data_dir.exists():
+        shutil.rmtree(data_dir)
+
     # Universe + scan
     cfg = ScanConfig(
         universe=settings.scan.universe,
@@ -164,6 +251,15 @@ def build_site() -> None:
     # can exceed CI time/data limits. Cap the universe deterministically.
     if len(tickers) > max_tickers:
         tickers = sorted(set(tickers))[:max_tickers]
+
+    # Export DB-backed metadata for the same universe code (if a DB exists).
+    universe_code = "nse_eq" if safe_lower(settings.scan.universe) == "nse" else "bse_eq" if safe_lower(settings.scan.universe) == "bse" else ""
+    if universe_code:
+        export_db_site_data(
+            db_path=os.getenv("SMASSIST_DB", "data/smassist.db"),
+            data_dir=data_dir,
+            universe_code=universe_code,
+        )
 
     # If using NSE, also keep official company names for display.
     base_meta: dict[str, dict[str, str]] = {}
