@@ -1,11 +1,12 @@
 from __future__ import annotations
 
+import hashlib
 import json
 import sqlite3
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Iterable, Optional
+from typing import Optional
 
 
 SCHEMA_SQL = """
@@ -70,6 +71,55 @@ CREATE TABLE IF NOT EXISTS industry_mapping (
   sector_name     TEXT NOT NULL,
   subsector_name  TEXT,
   UNIQUE(source, source_industry)
+);
+
+CREATE TABLE IF NOT EXISTS universes (
+    universe_id    INTEGER PRIMARY KEY AUTOINCREMENT,
+    universe_code  TEXT NOT NULL UNIQUE,
+    description    TEXT
+);
+
+CREATE TABLE IF NOT EXISTS universe_membership (
+    universe_id  INTEGER NOT NULL,
+    stock_id     INTEGER NOT NULL,
+    included     INTEGER NOT NULL DEFAULT 1,
+    updated_utc  TEXT NOT NULL,
+    PRIMARY KEY(universe_id, stock_id),
+    FOREIGN KEY(universe_id) REFERENCES universes(universe_id) ON DELETE CASCADE,
+    FOREIGN KEY(stock_id) REFERENCES stocks(stock_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ingest_runs (
+    run_id       INTEGER PRIMARY KEY AUTOINCREMENT,
+    started_utc  TEXT NOT NULL,
+    finished_utc TEXT,
+    command      TEXT,
+    git_sha      TEXT,
+    status       TEXT NOT NULL,
+    notes        TEXT
+);
+
+CREATE TABLE IF NOT EXISTS ingest_run_sources (
+    run_id          INTEGER NOT NULL,
+    source_code     TEXT NOT NULL,
+    url             TEXT,
+    fetched_utc     TEXT,
+    http_status     INTEGER,
+    content_sha256  TEXT,
+    row_count       INTEGER,
+    error           TEXT,
+    PRIMARY KEY(run_id, source_code),
+    FOREIGN KEY(run_id) REFERENCES ingest_runs(run_id) ON DELETE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS ticker_snapshots (
+    snapshot_id   INTEGER PRIMARY KEY AUTOINCREMENT,
+    universe_id   INTEGER NOT NULL,
+    created_utc   TEXT NOT NULL,
+    snapshot_path TEXT NOT NULL,
+    row_count     INTEGER,
+    content_sha256 TEXT,
+    FOREIGN KEY(universe_id) REFERENCES universes(universe_id) ON DELETE CASCADE
 );
 """
 
@@ -258,3 +308,151 @@ def apply_industry_mapping(conn: sqlite3.Connection) -> int:
     """
     # Placeholder: no-op for now (industry fields are not persisted yet)
     return 0
+
+
+def ensure_universe(conn: sqlite3.Connection, universe_code: str, description: Optional[str] = None) -> int:
+    universe_code = str(universe_code).strip().lower()
+    row = conn.execute("SELECT universe_id FROM universes WHERE universe_code = ?", (universe_code,)).fetchone()
+    if row:
+        return int(row["universe_id"])
+    cur = conn.execute(
+        "INSERT INTO universes(universe_code, description) VALUES (?, ?)",
+        (universe_code, description),
+    )
+    if cur.lastrowid is None:
+        raise RuntimeError("Insert failed: no lastrowid")
+    return int(cur.lastrowid)
+
+
+def upsert_universe_membership(conn: sqlite3.Connection, *, universe_id: int, stock_id: int, included: bool = True) -> None:
+    conn.execute(
+        """
+        INSERT INTO universe_membership(universe_id, stock_id, included, updated_utc)
+        VALUES (?, ?, ?, ?)
+        ON CONFLICT(universe_id, stock_id) DO UPDATE SET
+          included=excluded.included,
+          updated_utc=excluded.updated_utc
+        """,
+        (universe_id, stock_id, 1 if included else 0, utc_now_str()),
+    )
+
+
+def start_ingest_run(conn: sqlite3.Connection, *, command: Optional[str] = None, git_sha: Optional[str] = None) -> int:
+    cur = conn.execute(
+        """
+        INSERT INTO ingest_runs(started_utc, command, git_sha, status)
+        VALUES (?, ?, ?, 'running')
+        """,
+        (utc_now_str(), command, git_sha),
+    )
+    if cur.lastrowid is None:
+        raise RuntimeError("Insert failed: no lastrowid")
+    return int(cur.lastrowid)
+
+
+def finish_ingest_run(conn: sqlite3.Connection, *, run_id: int, status: str, notes: Optional[str] = None) -> None:
+    conn.execute(
+        """
+        UPDATE ingest_runs
+           SET finished_utc = ?,
+               status = ?,
+               notes = ?
+         WHERE run_id = ?
+        """,
+        (utc_now_str(), status, notes, run_id),
+    )
+
+
+def record_ingest_source(
+    conn: sqlite3.Connection,
+    *,
+    run_id: int,
+    source_code: str,
+    url: Optional[str] = None,
+    fetched_utc: Optional[str] = None,
+    http_status: Optional[int] = None,
+    content_sha256: Optional[str] = None,
+    row_count: Optional[int] = None,
+    error: Optional[str] = None,
+) -> None:
+    conn.execute(
+        """
+        INSERT INTO ingest_run_sources(run_id, source_code, url, fetched_utc, http_status, content_sha256, row_count, error)
+        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        ON CONFLICT(run_id, source_code) DO UPDATE SET
+          url=excluded.url,
+          fetched_utc=excluded.fetched_utc,
+          http_status=excluded.http_status,
+          content_sha256=excluded.content_sha256,
+          row_count=excluded.row_count,
+          error=excluded.error
+        """,
+        (run_id, str(source_code).strip().lower(), url, fetched_utc, http_status, content_sha256, row_count, error),
+    )
+
+
+def sha256_text(text: str) -> str:
+    return hashlib.sha256(text.encode("utf-8", errors="ignore")).hexdigest()
+
+
+def export_universe_snapshot_csv(
+    conn: sqlite3.Connection,
+    *,
+    universe_code: str,
+    out_path: str | Path,
+) -> int:
+    """Export a stable, rebuildable ticker snapshot for a universe.
+
+    This writes a CSV that is intended to be committed to git. It contains enough
+    identifiers to re-seed the DB if the SQLite file is lost.
+    """
+    universe_code = str(universe_code).strip().lower()
+    row = conn.execute("SELECT universe_id FROM universes WHERE universe_code = ?", (universe_code,)).fetchone()
+    if not row:
+        return 0
+    universe_id = int(row["universe_id"])
+
+    rows = conn.execute(
+        """
+        SELECT s.symbol_nse, s.symbol_bse, s.company_name, s.isin, s.nse_series, s.bse_scrip_code, s.status
+          FROM universe_membership um
+          JOIN stocks s ON s.stock_id = um.stock_id
+         WHERE um.universe_id = ? AND um.included = 1
+         ORDER BY COALESCE(s.symbol_nse, s.symbol_bse, s.isin, s.company_name)
+        """,
+        (universe_id,),
+    ).fetchall()
+
+    out = Path(out_path)
+    out.parent.mkdir(parents=True, exist_ok=True)
+    header = "symbol_nse,symbol_bse,company_name,isin,nse_series,bse_scrip_code,status\n"
+    lines = [header]
+    for r in rows:
+        vals = [
+            r["symbol_nse"] or "",
+            r["symbol_bse"] or "",
+            (r["company_name"] or "").replace("\n", " ").replace("\r", " "),
+            r["isin"] or "",
+            r["nse_series"] or "",
+            r["bse_scrip_code"] or "",
+            r["status"] or "",
+        ]
+        escaped = []
+        for v in vals:
+            s = str(v)
+            if "," in s or '"' in s:
+                s = '"' + s.replace('"', '""') + '"'
+            escaped.append(s)
+        lines.append(",".join(escaped) + "\n")
+
+    content = "".join(lines)
+    out.write_text(content, encoding="utf-8")
+
+    conn.execute(
+        """
+        INSERT INTO ticker_snapshots(universe_id, created_utc, snapshot_path, row_count, content_sha256)
+        VALUES (?, ?, ?, ?, ?)
+        """,
+        (universe_id, utc_now_str(), str(out.as_posix()), len(rows), sha256_text(content)),
+    )
+    return len(rows)

@@ -4,6 +4,7 @@ from __future__ import annotations
 import argparse
 import csv
 import io
+import sys
 from pathlib import Path
 from typing import Dict, Iterable, Optional, Tuple
 
@@ -17,11 +18,29 @@ src_path = repo_root / "src"
 if str(src_path) not in sys.path:
     sys.path.insert(0, str(src_path))
 
-from smassist.database import StockUpsert, connect_db, init_db, seed_taxonomy_from_json, upsert_stock, upsert_industry_mapping
+from smassist.database import (
+    StockUpsert,
+    connect_db,
+    ensure_universe,
+    export_universe_snapshot_csv,
+    finish_ingest_run,
+    init_db,
+    record_ingest_source,
+    seed_taxonomy_from_json,
+    sha256_text,
+    start_ingest_run,
+    upsert_industry_mapping,
+    upsert_stock,
+    upsert_universe_membership,
+    utc_now_str,
+)
 
 
 NSE_EQUITY_L_URL = "https://archives.nseindia.com/content/equities/EQUITY_L.csv"
 BSE_SCRIP_MASTER_URL = "https://api.bseindia.com/BseIndiaAPI/api/LitsOfScripCSVDownload/w?segment=Equity&status=&Group=&Scripcode="
+
+NSE_UNIVERSE_CODE = "nse_eq"
+BSE_UNIVERSE_CODE = "bse_eq"
 
 
 def http_session() -> requests.Session:
@@ -45,6 +64,24 @@ def download_text(session: requests.Session, url: str, *, referer: Optional[str]
     return resp.text
 
 
+def read_snapshot_csv(path: Path) -> Iterable[Dict[str, str]]:
+    if not path.exists():
+        return []
+    reader = csv.DictReader(io.StringIO(path.read_text(encoding="utf-8")))
+    out: list[Dict[str, str]] = []
+    for row in reader:
+        clean: Dict[str, str] = {}
+        for k, v in (row or {}).items():
+            if k is None:
+                continue
+            kk = k.strip()
+            if not kk:
+                continue
+            clean[kk] = v.strip() if isinstance(v, str) else v
+        out.append(clean)
+    return out
+
+
 def read_csv_rows(text: str) -> Iterable[Dict[str, str]]:
     # Handles BOM and common bad encodings gracefully
     buf = io.StringIO(text)
@@ -62,11 +99,26 @@ def read_csv_rows(text: str) -> Iterable[Dict[str, str]]:
         yield out
 
 
-def ingest_nse_equity_list(conn, session: requests.Session, *, only_series_eq: bool = True) -> Tuple[int, int]:
+def ingest_nse_equity_list(conn, session: requests.Session, *, run_id: int, only_series_eq: bool = True) -> Tuple[int, int]:
+    fetched_utc = utc_now_str()
     text = download_text(session, NSE_EQUITY_L_URL)
+    record_ingest_source(
+        conn,
+        run_id=run_id,
+        source_code="nse_equity_l",
+        url=NSE_EQUITY_L_URL,
+        fetched_utc=fetched_utc,
+        http_status=200,
+        content_sha256=sha256_text(text),
+        row_count=None,
+        error=None,
+    )
 
     inserted = 0
     updated = 0
+
+    universe_id = ensure_universe(conn, NSE_UNIVERSE_CODE, description="NSE listed equities (EQUITY_L.csv, series=EQ)")
+    row_count = 0
 
     for row in read_csv_rows(text):
         symbol = (row.get("SYMBOL") or "").strip()
@@ -78,8 +130,10 @@ def ingest_nse_equity_list(conn, session: requests.Session, *, only_series_eq: b
         if only_series_eq and series and series != "EQ":
             continue
 
+        row_count += 1
+
         before = conn.total_changes
-        upsert_stock(
+        stock_id = upsert_stock(
             conn,
             StockUpsert(
                 symbol_nse=symbol,
@@ -89,21 +143,48 @@ def ingest_nse_equity_list(conn, session: requests.Session, *, only_series_eq: b
                 status="active",
             ),
         )
+        upsert_universe_membership(conn, universe_id=universe_id, stock_id=stock_id, included=True)
         after = conn.total_changes
         if after > before:
             # Heuristic: total_changes increments for inserts/updates; we can't easily distinguish.
             updated += 1
 
     conn.commit()
+    record_ingest_source(
+        conn,
+        run_id=run_id,
+        source_code="nse_equity_l",
+        url=NSE_EQUITY_L_URL,
+        fetched_utc=fetched_utc,
+        http_status=200,
+        content_sha256=sha256_text(text),
+        row_count=row_count,
+        error=None,
+    )
     # We don't precisely know inserted vs updated without extra queries; keep inserted=0 for now.
     return inserted, updated
 
 
-def ingest_bse_scrip_master(conn, session: requests.Session) -> Tuple[int, int]:
+def ingest_bse_scrip_master(conn, session: requests.Session, *, run_id: int) -> Tuple[int, int]:
+    fetched_utc = utc_now_str()
     text = download_text(session, BSE_SCRIP_MASTER_URL, referer="https://www.bseindia.com/corporates/List_Scrips.html")
+    record_ingest_source(
+        conn,
+        run_id=run_id,
+        source_code="bse_scrip_master",
+        url=BSE_SCRIP_MASTER_URL,
+        fetched_utc=fetched_utc,
+        http_status=200,
+        content_sha256=sha256_text(text),
+        row_count=None,
+        error=None,
+    )
 
     inserted = 0
     updated = 0
+
+    universe_id = ensure_universe(conn, BSE_UNIVERSE_CODE, description="BSE scrip master (segment=Equity)")
+    row_count = 0
 
     for row in read_csv_rows(text):
         scrip_code = (row.get("Security Code") or "").strip()
@@ -115,8 +196,10 @@ def ingest_bse_scrip_master(conn, session: requests.Session) -> Tuple[int, int]:
         if not security_id and not isin:
             continue
 
+        row_count += 1
+
         before = conn.total_changes
-        upsert_stock(
+        stock_id = upsert_stock(
             conn,
             StockUpsert(
                 symbol_bse=security_id or None,
@@ -126,9 +209,71 @@ def ingest_bse_scrip_master(conn, session: requests.Session) -> Tuple[int, int]:
                 status=status.lower() if status else None,
             ),
         )
+        upsert_universe_membership(conn, universe_id=universe_id, stock_id=stock_id, included=True)
         after = conn.total_changes
         if after > before:
             updated += 1
+
+    conn.commit()
+    record_ingest_source(
+        conn,
+        run_id=run_id,
+        source_code="bse_scrip_master",
+        url=BSE_SCRIP_MASTER_URL,
+        fetched_utc=fetched_utc,
+        http_status=200,
+        content_sha256=sha256_text(text),
+        row_count=row_count,
+        error=None,
+    )
+    return inserted, updated
+
+
+def ingest_from_snapshots(conn, *, snapshot_dir: Path) -> Tuple[int, int]:
+    """Offline rebuild path using committed ticker snapshot CSVs."""
+    inserted = 0
+    updated = 0
+
+    nse_path = snapshot_dir / f"{NSE_UNIVERSE_CODE}.csv"
+    bse_path = snapshot_dir / f"{BSE_UNIVERSE_CODE}.csv"
+
+    if nse_path.exists():
+        universe_id = ensure_universe(conn, NSE_UNIVERSE_CODE, description="NSE listed equities (snapshot)")
+        for row in read_snapshot_csv(nse_path):
+            before = conn.total_changes
+            stock_id = upsert_stock(
+                conn,
+                StockUpsert(
+                    symbol_nse=(row.get("symbol_nse") or "").strip() or None,
+                    company_name=(row.get("company_name") or "").strip() or None,
+                    isin=(row.get("isin") or "").strip() or None,
+                    nse_series=(row.get("nse_series") or "").strip() or None,
+                    status=(row.get("status") or "").strip() or None,
+                ),
+            )
+            upsert_universe_membership(conn, universe_id=universe_id, stock_id=stock_id, included=True)
+            after = conn.total_changes
+            if after > before:
+                updated += 1
+
+    if bse_path.exists():
+        universe_id = ensure_universe(conn, BSE_UNIVERSE_CODE, description="BSE scrip master (snapshot)")
+        for row in read_snapshot_csv(bse_path):
+            before = conn.total_changes
+            stock_id = upsert_stock(
+                conn,
+                StockUpsert(
+                    symbol_bse=(row.get("symbol_bse") or "").strip() or None,
+                    company_name=(row.get("company_name") or "").strip() or None,
+                    isin=(row.get("isin") or "").strip() or None,
+                    bse_scrip_code=(row.get("bse_scrip_code") or "").strip() or None,
+                    status=(row.get("status") or "").strip() or None,
+                ),
+            )
+            upsert_universe_membership(conn, universe_id=universe_id, stock_id=stock_id, included=True)
+            after = conn.total_changes
+            if after > before:
+                updated += 1
 
     conn.commit()
     return inserted, updated
@@ -180,6 +325,16 @@ def main(argv=None) -> int:
     )
     p.add_argument("--skip-nse", action="store_true")
     p.add_argument("--skip-bse", action="store_true")
+    p.add_argument(
+        "--snapshot-dir",
+        default=str(repo_root / "config" / "ticker_snapshots"),
+        help="Directory for committed ticker snapshot CSVs",
+    )
+    p.add_argument(
+        "--offline",
+        action="store_true",
+        help="Do not hit network; rebuild using ticker snapshots if present",
+    )
     args = p.parse_args(argv)
 
     session = http_session()
@@ -187,12 +342,41 @@ def main(argv=None) -> int:
         init_db(conn)
         seed_taxonomy_from_json(conn, args.taxonomy)
 
+        run_id = start_ingest_run(
+            conn,
+            command=" ".join((argv or sys.argv)[1:]) if (argv or sys.argv) else None,
+            git_sha=None,
+        )
+
         mapped = ingest_mapping_csv(conn, Path(args.mapping))
 
-        if not args.skip_nse:
-            ingest_nse_equity_list(conn, session)
-        if not args.skip_bse:
-            ingest_bse_scrip_master(conn, session)
+        notes: list[str] = []
+        status = "success"
+        try:
+            if args.offline:
+                ingest_from_snapshots(conn, snapshot_dir=Path(args.snapshot_dir))
+                notes.append("offline rebuild from snapshots")
+            else:
+                if not args.skip_nse:
+                    ingest_nse_equity_list(conn, session, run_id=run_id)
+                if not args.skip_bse:
+                    ingest_bse_scrip_master(conn, session, run_id=run_id)
+        except Exception as e:
+            status = "failed"
+            notes.append(f"ingest failed: {e}")
+            # Fall back to snapshots if available.
+            ingest_from_snapshots(conn, snapshot_dir=Path(args.snapshot_dir))
+            notes.append("fallback rebuild from snapshots")
+
+        # Always export snapshots after a successful ingest/fallback so they stay fresh.
+        snap_dir = Path(args.snapshot_dir)
+        snap_dir.mkdir(parents=True, exist_ok=True)
+        nse_n = export_universe_snapshot_csv(conn, universe_code=NSE_UNIVERSE_CODE, out_path=snap_dir / f"{NSE_UNIVERSE_CODE}.csv")
+        bse_n = export_universe_snapshot_csv(conn, universe_code=BSE_UNIVERSE_CODE, out_path=snap_dir / f"{BSE_UNIVERSE_CODE}.csv")
+        notes.append(f"snapshot export: {NSE_UNIVERSE_CODE}={nse_n}, {BSE_UNIVERSE_CODE}={bse_n}")
+
+        finish_ingest_run(conn, run_id=run_id, status=status, notes="; ".join(notes) if notes else None)
+        conn.commit()
 
         stocks = conn.execute("SELECT COUNT(*) AS n FROM stocks").fetchone()["n"]
         sectors = conn.execute("SELECT COUNT(*) AS n FROM sectors").fetchone()["n"]
