@@ -40,6 +40,8 @@ jobs:
       - name: Build site data
         env:
           SMASSIST_LOG_LEVEL: INFO
+          SMASSIST_UNIVERSE: nse
+          SMASSIST_SITE_MAX_TICKERS: "250"
         run: |
           python scripts/build_site.py
 

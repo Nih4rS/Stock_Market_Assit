@@ -146,6 +146,11 @@ def build_site() -> None:
     data_dir = site_root / "data"
     prices_dir = data_dir / "prices"
     history_period = os.getenv("SMASSIST_HISTORY_PERIOD", "2y")
+    max_tickers_env = os.getenv("SMASSIST_SITE_MAX_TICKERS", "250")
+    try:
+        max_tickers = max(1, int(max_tickers_env))
+    except Exception:
+        max_tickers = 250
 
     # Universe + scan
     cfg = ScanConfig(
@@ -154,6 +159,11 @@ def build_site() -> None:
         lookback_days=settings.scan.lookback_days,
     )
     tickers = load_universe(cfg)
+
+    # GitHub Pages builds must remain fast/reliable; scanning a full exchange list
+    # can exceed CI time/data limits. Cap the universe deterministically.
+    if len(tickers) > max_tickers:
+        tickers = sorted(set(tickers))[:max_tickers]
 
     # If using NSE, also keep official company names for display.
     base_meta: dict[str, dict[str, str]] = {}
